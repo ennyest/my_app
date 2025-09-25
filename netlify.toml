@@ -1,6 +1,6 @@
 [build]
   publish = "build/web"
-  command = "flutter build web --base-href=/"
+  command = "curl -fsSL https://storage.googleapis.com/flutter_infra_release/releases/stable/linux/flutter_linux_3.24.0-stable.tar.xz | tar -xJ -C /tmp && export PATH=/tmp/flutter/bin:$PATH && flutter config --no-analytics && flutter pub get && flutter build web --base-href=/"
 
 [[redirects]]
   from = "/*"
