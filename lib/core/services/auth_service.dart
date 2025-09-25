@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:provider/provider.dart';
 import '../../shared/models/user_model.dart';
 import '../constants/app_constants.dart';
+import 'admin_service.dart';
+import 'admin_view_service.dart';
 
 class AuthService extends ChangeNotifier {
   final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -22,10 +25,14 @@ class AuthService extends ChangeNotifier {
   }
 
   Future<void> _onAuthStateChanged(User? user) async {
+    debugPrint('Auth state changed: ${user?.uid}');
     _user = user;
     if (user != null) {
+      debugPrint('Loading user model for: ${user.email}');
       await _loadUserModel();
+      debugPrint('User model loaded: ${_userModel?.email}');
     } else {
+      debugPrint('User signed out');
       _userModel = null;
     }
     notifyListeners();
@@ -35,6 +42,9 @@ class AuthService extends ChangeNotifier {
     if (_user == null) return;
     
     try {
+      _setLoading(true);
+      
+      // First try to get the user document
       final doc = await _firestore
           .collection(AppConstants.usersCollection)
           .doc(_user!.uid)
@@ -42,22 +52,39 @@ class AuthService extends ChangeNotifier {
       
       if (doc.exists) {
         _userModel = UserModel.fromFirestore(doc);
+        debugPrint('User model loaded from Firestore: ${_userModel?.email}');
       } else {
         // Create new user model if it doesn't exist
+        debugPrint('User document not found, creating new user model');
         await _createUserModel();
       }
     } catch (e) {
       debugPrint('Error loading user model: $e');
+      
+      // If it's a permission error, try to create the user first
+      if (e.toString().contains('permission-denied')) {
+        debugPrint('Permission denied, attempting to create user model');
+        try {
+          await _createUserModel();
+        } catch (createError) {
+          debugPrint('Error creating user model: $createError');
+          // Create a fallback user model to prevent infinite loading
+          _createFallbackUserModel();
+        }
+      } else {
+        // Create a fallback user model for other errors
+        _createFallbackUserModel();
+      }
+    } finally {
+      _setLoading(false);
     }
   }
 
-  Future<void> _createUserModel() async {
-    if (_user == null) return;
-
-    final userModel = UserModel(
+  void _createFallbackUserModel() {
+    _userModel = UserModel(
       userId: _user!.uid,
-      email: _user!.email ?? '',
-      displayName: _user!.displayName ?? '',
+      email: _user!.email ?? 'No Email',
+      displayName: _user!.displayName ?? 'No Name',
       profileImage: _user!.photoURL,
       preferences: UserPreferences(
         hairType: 'straight',
@@ -68,6 +95,36 @@ class AuthService extends ChangeNotifier {
       ),
       createdAt: DateTime.now(),
       lastActive: DateTime.now(),
+      role: AdminService.isAdminEmail(_user!.email ?? '') ? UserRole.admin : UserRole.user,
+      isActive: true,
+    );
+    debugPrint('Created fallback user model for ${_userModel?.email}');
+  }
+
+  Future<void> _createUserModel() async {
+    if (_user == null) return;
+
+    // Determine if user should be admin
+    final userRole = AdminService.isAdminEmail(_user!.email ?? '') 
+        ? UserRole.admin 
+        : UserRole.user;
+
+    final userModel = UserModel(
+      userId: _user!.uid,
+      email: _user!.email ?? 'No Email',
+      displayName: _user!.displayName ?? 'No Name',
+      profileImage: _user!.photoURL,
+      preferences: UserPreferences(
+        hairType: 'straight',
+        preferredLength: 'medium',
+        colorPreferences: [],
+        faceShape: 'oval',
+        skinTone: 'neutral',
+      ),
+      createdAt: DateTime.now(),
+      lastActive: DateTime.now(),
+      role: userRole,
+      isActive: true,
     );
 
     try {
@@ -77,8 +134,11 @@ class AuthService extends ChangeNotifier {
           .set(userModel.toFirestore());
       
       _userModel = userModel;
+      debugPrint('Created new user model for ${_user!.email}');
     } catch (e) {
       debugPrint('Error creating user model: $e');
+      // Still set the model even if Firestore write fails
+      _userModel = userModel;
     }
   }
 
@@ -89,6 +149,12 @@ class AuthService extends ChangeNotifier {
         email: email,
         password: password,
       );
+      
+      // If this is the admin email, ensure admin role is set
+      if (AdminService.isAdminEmail(email)) {
+        await _ensureAdminRole();
+      }
+      
       return null; // Success
     } on FirebaseAuthException catch (e) {
       return _getAuthErrorMessage(e);
@@ -110,6 +176,11 @@ class AuthService extends ChangeNotifier {
       if (credential.user != null) {
         await credential.user!.updateDisplayName(displayName);
         await _createUserModel();
+        
+        // If this is the admin email, ensure admin role is set
+        if (AdminService.isAdminEmail(email)) {
+          await _ensureAdminRole();
+        }
       }
       
       return null; // Success
@@ -213,6 +284,31 @@ class AuthService extends ChangeNotifier {
       _setLoading(false);
     }
   }
+
+  Future<void> _ensureAdminRole() async {
+    if (_userModel == null || _user == null) return;
+    
+    if (_userModel!.role != UserRole.admin && 
+        AdminService.isAdminEmail(_userModel!.email)) {
+      try {
+        await _firestore
+            .collection(AppConstants.usersCollection)
+            .doc(_user!.uid)
+            .update({'role': 'admin'});
+        
+        // Reload user model to reflect the change
+        await _loadUserModel();
+      } catch (e) {
+        debugPrint('Error ensuring admin role: $e');
+      }
+    }
+  }
+
+  // Check if current user is admin
+  bool get isAdmin => _userModel?.isAdmin ?? false;
+
+  // Get user role display name
+  String get userRoleDisplayName => _userModel?.role.displayName ?? 'User';
 
   void _setLoading(bool loading) {
     _isLoading = loading;

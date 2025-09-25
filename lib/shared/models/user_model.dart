@@ -1,5 +1,29 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+enum UserRole {
+  user,
+  admin;
+
+  String get displayName {
+    switch (this) {
+      case UserRole.user:
+        return 'User';
+      case UserRole.admin:
+        return 'Administrator';
+    }
+  }
+
+  static UserRole fromString(String role) {
+    switch (role.toLowerCase()) {
+      case 'admin':
+        return UserRole.admin;
+      case 'user':
+      default:
+        return UserRole.user;
+    }
+  }
+}
+
 class UserModel {
   final String userId;
   final String email;
@@ -8,6 +32,8 @@ class UserModel {
   final UserPreferences preferences;
   final DateTime createdAt;
   final DateTime lastActive;
+  final UserRole role;
+  final bool isActive;
 
   UserModel({
     required this.userId,
@@ -17,18 +43,27 @@ class UserModel {
     required this.preferences,
     required this.createdAt,
     required this.lastActive,
+    this.role = UserRole.user,
+    this.isActive = true,
   });
 
   factory UserModel.fromFirestore(DocumentSnapshot doc) {
-    Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
+    Map<String, dynamic> data = doc.data() as Map<String, dynamic>? ?? {};
+    
     return UserModel(
       userId: doc.id,
-      email: data['email'] ?? '',
-      displayName: data['displayName'] ?? '',
+      email: data['email'] ?? 'No Email',
+      displayName: data['displayName'] ?? 'No Name',
       profileImage: data['profileImage'],
       preferences: UserPreferences.fromMap(data['preferences'] ?? {}),
-      createdAt: (data['createdAt'] as Timestamp).toDate(),
-      lastActive: (data['lastActive'] as Timestamp).toDate(),
+      createdAt: data['createdAt'] != null 
+          ? (data['createdAt'] as Timestamp).toDate() 
+          : DateTime.now(),
+      lastActive: data['lastActive'] != null 
+          ? (data['lastActive'] as Timestamp).toDate() 
+          : DateTime.now(),
+      role: UserRole.fromString(data['role'] ?? 'user'),
+      isActive: data['isActive'] ?? true,
     );
   }
 
@@ -40,6 +75,8 @@ class UserModel {
       'preferences': preferences.toMap(),
       'createdAt': Timestamp.fromDate(createdAt),
       'lastActive': Timestamp.fromDate(lastActive),
+      'role': role.name,
+      'isActive': isActive,
     };
   }
 
@@ -51,6 +88,8 @@ class UserModel {
     UserPreferences? preferences,
     DateTime? createdAt,
     DateTime? lastActive,
+    UserRole? role,
+    bool? isActive,
   }) {
     return UserModel(
       userId: userId ?? this.userId,
@@ -60,8 +99,12 @@ class UserModel {
       preferences: preferences ?? this.preferences,
       createdAt: createdAt ?? this.createdAt,
       lastActive: lastActive ?? this.lastActive,
+      role: role ?? this.role,
+      isActive: isActive ?? this.isActive,
     );
   }
+
+  bool get isAdmin => role == UserRole.admin;
 }
 
 class UserPreferences {
@@ -81,11 +124,13 @@ class UserPreferences {
 
   factory UserPreferences.fromMap(Map<String, dynamic> map) {
     return UserPreferences(
-      hairType: map['hairType'] ?? 'straight',
-      preferredLength: map['preferredLength'] ?? 'medium',
-      colorPreferences: List<String>.from(map['colorPreferences'] ?? []),
-      faceShape: map['faceShape'] ?? 'oval',
-      skinTone: map['skinTone'] ?? 'neutral',
+      hairType: map['hairType']?.toString() ?? 'straight',
+      preferredLength: map['preferredLength']?.toString() ?? 'medium',
+      colorPreferences: map['colorPreferences'] != null 
+          ? List<String>.from(map['colorPreferences']) 
+          : [],
+      faceShape: map['faceShape']?.toString() ?? 'oval',
+      skinTone: map['skinTone']?.toString() ?? 'neutral',
     );
   }
 

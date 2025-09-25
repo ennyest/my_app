@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/constants/app_constants.dart';
+import '../../../core/services/gallery_service.dart';
 import '../../../shared/widgets/custom_button.dart';
 import '../../../shared/widgets/custom_text_field.dart';
 import '../widgets/hairstyle_card.dart';
@@ -16,9 +17,20 @@ class GalleryScreen extends StatefulWidget {
 
 class _GalleryScreenState extends State<GalleryScreen> {
   final TextEditingController _searchController = TextEditingController();
-  String _selectedCategory = 'All';
-  String _selectedDifficulty = 'All';
-  String _selectedLength = 'All';
+
+  @override
+  void initState() {
+    super.initState();
+    // Delay the initial load to ensure authentication is complete
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Future.delayed(const Duration(milliseconds: 1000), () {
+        if (mounted) {
+          final galleryService = Provider.of<GalleryService>(context, listen: false);
+          galleryService.loadHairstyles();
+        }
+      });
+    });
+  }
 
   @override
   void dispose() {
@@ -27,20 +39,22 @@ class _GalleryScreenState extends State<GalleryScreen> {
   }
 
   void _showFilterBottomSheet() {
+    final galleryService = Provider.of<GalleryService>(context, listen: false);
+    
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) => GalleryFilterBottomSheet(
-        selectedCategory: _selectedCategory,
-        selectedDifficulty: _selectedDifficulty,
-        selectedLength: _selectedLength,
+        selectedCategory: galleryService.selectedCategory,
+        selectedDifficulty: galleryService.selectedDifficulty,
+        selectedLength: galleryService.selectedLength,
         onApplyFilters: (category, difficulty, length) {
-          setState(() {
-            _selectedCategory = category;
-            _selectedDifficulty = difficulty;
-            _selectedLength = length;
-          });
+          galleryService.updateFilters(
+            category: category,
+            difficulty: difficulty,
+            length: length,
+          );
         },
       ),
     );
@@ -56,135 +70,169 @@ class _GalleryScreenState extends State<GalleryScreen> {
             icon: const Icon(Icons.filter_list),
             onPressed: _showFilterBottomSheet,
           ),
-        ],
-      ),
-      body: Column(
-        children: [
-          // Search Bar
-          Padding(
-            padding: const EdgeInsets.all(AppConstants.defaultPadding),
-            child: CustomTextField(
-              controller: _searchController,
-              labelText: 'Search hairstyles...',
-              hintText: 'Search hairstyles...',
-              prefixIcon: Icons.search,
-              onChanged: (value) {
-                // TODO: Implement search functionality
-              },
-            ),
-          ),
-          
-          // Category Chips
-          Container(
-            height: 50,
-            padding: const EdgeInsets.symmetric(horizontal: AppConstants.defaultPadding),
-            child: ListView(
-              scrollDirection: Axis.horizontal,
-              children: [
-                _buildCategoryChip('All', _selectedCategory == 'All'),
-                const SizedBox(width: AppConstants.smallPadding),
-                _buildCategoryChip('Braids', _selectedCategory == 'Braids'),
-                const SizedBox(width: AppConstants.smallPadding),
-                _buildCategoryChip('Curls', _selectedCategory == 'Curls'),
-                const SizedBox(width: AppConstants.smallPadding),
-                _buildCategoryChip('Natural', _selectedCategory == 'Natural'),
-                const SizedBox(width: AppConstants.smallPadding),
-                _buildCategoryChip('Updos', _selectedCategory == 'Updos'),
-                const SizedBox(width: AppConstants.smallPadding),
-                _buildCategoryChip('Bobs', _selectedCategory == 'Bobs'),
-              ],
-            ),
-          ),
-          
-          const SizedBox(height: AppConstants.defaultPadding),
-          
-          // Gallery Grid
-          Expanded(
-            child: _buildGalleryGrid(),
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: () {
+              final galleryService = Provider.of<GalleryService>(context, listen: false);
+              galleryService.loadHairstyles();
+            },
           ),
         ],
       ),
-      floatingActionButton: CustomFloatingActionButton(
-        icon: Icons.add,
-        tooltip: 'Add Hairstyle',
-        onPressed: () {
-          // TODO: Navigate to add hairstyle screen
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Add hairstyle feature coming soon!'),
-            ),
+      body: Consumer<GalleryService>(
+        builder: (context, galleryService, child) {
+          if (galleryService.isLoading) {
+            return const Center(
+              child: CircularProgressIndicator(),
+            );
+          }
+
+          if (galleryService.error != null) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.error_outline,
+                    size: 64,
+                    color: AppColors.error,
+                  ),
+                  const SizedBox(height: AppConstants.defaultPadding),
+                  Text(
+                    'Error loading hairstyles',
+                    style: Theme.of(context).textTheme.titleLarge,
+                  ),
+                  const SizedBox(height: AppConstants.smallPadding),
+                  Text(
+                    galleryService.error!,
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                  const SizedBox(height: AppConstants.defaultPadding),
+                  CustomButton(
+                    text: 'Retry',
+                    onPressed: () => galleryService.loadHairstyles(),
+                  ),
+                ],
+              ),
+            );
+          }
+
+          return Column(
+            children: [
+              // Search Bar
+              Padding(
+                padding: const EdgeInsets.all(AppConstants.defaultPadding),
+                child: CustomTextField(
+                  controller: _searchController,
+                  labelText: 'Search hairstyles...',
+                  hintText: 'Search hairstyles...',
+                  prefixIcon: Icons.search,
+                  onChanged: (value) {
+                    galleryService.updateSearchQuery(value);
+                  },
+                ),
+              ),
+              
+              // Category Chips
+              _buildCategoryChips(galleryService),
+              
+              const SizedBox(height: AppConstants.defaultPadding),
+              
+              // Gallery Grid
+              Expanded(
+                child: _buildGalleryGrid(galleryService),
+              ),
+            ],
           );
         },
       ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Please use Admin Dashboard to add hairstyles'),
+            ),
+          );
+        },
+        backgroundColor: AppColors.primary,
+        tooltip: 'Add Hairstyle',
+        child: const Icon(Icons.add),
+      ),
     );
   }
 
-  Widget _buildCategoryChip(String label, bool isSelected) {
-    return FilterChip(
-      label: Text(label),
-      selected: isSelected,
-      onSelected: (selected) {
-        setState(() {
-          _selectedCategory = selected ? label : 'All';
-        });
-      },
-      selectedColor: AppColors.primary.withOpacity(0.2),
-      checkmarkColor: AppColors.primary,
+  Widget _buildCategoryChips(GalleryService galleryService) {
+    const categories = ['All', 'Braids', 'Curls', 'Natural', 'Updos', 'Bobs'];
+    
+    return Container(
+      height: 50,
+      padding: const EdgeInsets.symmetric(horizontal: AppConstants.defaultPadding),
+      child: ListView(
+        scrollDirection: Axis.horizontal,
+        children: categories.map((category) {
+          final isSelected = galleryService.selectedCategory == category;
+          return Padding(
+            padding: const EdgeInsets.only(right: AppConstants.smallPadding),
+            child: FilterChip(
+              label: Text(category),
+              selected: isSelected,
+              onSelected: (selected) {
+                galleryService.updateFilters(
+                  category: selected ? category : 'All',
+                );
+              },
+              selectedColor: AppColors.primary.withOpacity(0.2),
+              checkmarkColor: AppColors.primary,
+            ),
+          );
+        }).toList(),
+      ),
     );
   }
 
-  Widget _buildGalleryGrid() {
-    // TODO: Replace with actual data from Firestore
-    final List<Map<String, dynamic>> sampleHairstyles = [
-      {
-        'id': '1',
-        'name': 'Elegant Braids',
-        'imageUrl': 'https://via.placeholder.com/300x400',
-        'category': 'Braids',
-        'difficulty': 'Medium',
-        'likes': 150,
-      },
-      {
-        'id': '2',
-        'name': 'Curly Bob',
-        'imageUrl': 'https://via.placeholder.com/300x400',
-        'category': 'Bobs',
-        'difficulty': 'Easy',
-        'likes': 89,
-      },
-      {
-        'id': '3',
-        'name': 'Natural Afro',
-        'imageUrl': 'https://via.placeholder.com/300x400',
-        'category': 'Natural',
-        'difficulty': 'Easy',
-        'likes': 234,
-      },
-      {
-        'id': '4',
-        'name': 'Elegant Updo',
-        'imageUrl': 'https://via.placeholder.com/300x400',
-        'category': 'Updos',
-        'difficulty': 'Hard',
-        'likes': 167,
-      },
-      {
-        'id': '5',
-        'name': 'Wavy Layers',
-        'imageUrl': 'https://via.placeholder.com/300x400',
-        'category': 'Curls',
-        'difficulty': 'Medium',
-        'likes': 98,
-      },
-      {
-        'id': '6',
-        'name': 'Pixie Cut',
-        'imageUrl': 'https://via.placeholder.com/300x400',
-        'category': 'Bobs',
-        'difficulty': 'Easy',
-        'likes': 145,
-      },
-    ];
+  Widget _buildGalleryGrid(GalleryService galleryService) {
+    final hairstyles = galleryService.hairstyles;
+    
+    if (hairstyles.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.style_outlined,
+              size: 64,
+              color: AppColors.textSecondary,
+            ),
+            const SizedBox(height: AppConstants.defaultPadding),
+            Text(
+              'No hairstyles found',
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                color: AppColors.textSecondary,
+              ),
+            ),
+            const SizedBox(height: AppConstants.smallPadding),
+            Text(
+              'Try adjusting your search or filters',
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: AppColors.textSecondary,
+              ),
+            ),
+            const SizedBox(height: AppConstants.defaultPadding),
+            CustomButton(
+              text: 'Clear Filters',
+              onPressed: () {
+                galleryService.clearFilters();
+                _searchController.clear();
+              },
+              isOutlined: true,
+            ),
+          ],
+        ),
+      );
+    }
 
     return GridView.builder(
       padding: const EdgeInsets.all(AppConstants.defaultPadding),
@@ -194,21 +242,33 @@ class _GalleryScreenState extends State<GalleryScreen> {
         crossAxisSpacing: AppConstants.defaultPadding,
         mainAxisSpacing: AppConstants.defaultPadding,
       ),
-      itemCount: sampleHairstyles.length,
+      itemCount: hairstyles.length,
       itemBuilder: (context, index) {
-        final hairstyle = sampleHairstyles[index];
+        final hairstyle = hairstyles[index];
         return HairstyleCard(
-          id: hairstyle['id'],
-          name: hairstyle['name'],
-          imageUrl: hairstyle['imageUrl'],
-          category: hairstyle['category'],
-          difficulty: hairstyle['difficulty'],
-          likes: hairstyle['likes'],
+          id: hairstyle.styleId,
+          name: hairstyle.name,
+          imageUrl: hairstyle.imageUrl,
+          category: hairstyle.category,
+          difficulty: hairstyle.difficulty,
+          likes: hairstyle.likes,
           onTap: () {
             // TODO: Navigate to hairstyle detail screen
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text('Viewing ${hairstyle['name']}'),
+                content: Text('Viewing ${hairstyle.name}'),
+              ),
+            );
+          },
+          onLike: () {
+            // TODO: Implement like functionality
+            galleryService.likeHairstyle(hairstyle.styleId, true);
+          },
+          onSave: () {
+            // TODO: Implement save functionality
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('${hairstyle.name} saved to favorites'),
               ),
             );
           },

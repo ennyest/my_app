@@ -14,6 +14,11 @@ class HairstyleModel {
   final String? uploadedBy; // userId if user-uploaded
   final int likes;
   final DateTime createdAt;
+  final bool isApproved;
+  final bool isRejected;
+  final String? rejectionReason;
+  final DateTime? approvedAt;
+  final DateTime? rejectedAt;
 
   HairstyleModel({
     required this.styleId,
@@ -29,6 +34,11 @@ class HairstyleModel {
     this.uploadedBy,
     required this.likes,
     required this.createdAt,
+    this.isApproved = false,
+    this.isRejected = false,
+    this.rejectionReason,
+    this.approvedAt,
+    this.rejectedAt,
   });
 
   factory HairstyleModel.fromFirestore(DocumentSnapshot doc) {
@@ -47,6 +57,11 @@ class HairstyleModel {
       uploadedBy: data['uploadedBy'],
       likes: data['likes'] ?? 0,
       createdAt: (data['createdAt'] as Timestamp).toDate(),
+      isApproved: data['isApproved'] ?? true, // Default to true for existing styles
+      isRejected: data['isRejected'] ?? false,
+      rejectionReason: data['rejectionReason'],
+      approvedAt: data['approvedAt'] != null ? (data['approvedAt'] as Timestamp).toDate() : null,
+      rejectedAt: data['rejectedAt'] != null ? (data['rejectedAt'] as Timestamp).toDate() : null,
     );
   }
 
@@ -64,6 +79,11 @@ class HairstyleModel {
       'uploadedBy': uploadedBy,
       'likes': likes,
       'createdAt': Timestamp.fromDate(createdAt),
+      'isApproved': isApproved,
+      'isRejected': isRejected,
+      'rejectionReason': rejectionReason,
+      'approvedAt': approvedAt != null ? Timestamp.fromDate(approvedAt!) : null,
+      'rejectedAt': rejectedAt != null ? Timestamp.fromDate(rejectedAt!) : null,
     };
   }
 
@@ -81,6 +101,11 @@ class HairstyleModel {
     String? uploadedBy,
     int? likes,
     DateTime? createdAt,
+    bool? isApproved,
+    bool? isRejected,
+    String? rejectionReason,
+    DateTime? approvedAt,
+    DateTime? rejectedAt,
   }) {
     return HairstyleModel(
       styleId: styleId ?? this.styleId,
@@ -96,6 +121,11 @@ class HairstyleModel {
       uploadedBy: uploadedBy ?? this.uploadedBy,
       likes: likes ?? this.likes,
       createdAt: createdAt ?? this.createdAt,
+      isApproved: isApproved ?? this.isApproved,
+      isRejected: isRejected ?? this.isRejected,
+      rejectionReason: rejectionReason ?? this.rejectionReason,
+      approvedAt: approvedAt ?? this.approvedAt,
+      rejectedAt: rejectedAt ?? this.rejectedAt,
     );
   }
 }

@@ -1,0 +1,62 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Users collection - users can read/write their own data
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+      // Allow admins to read all user data
+      allow read: if request.auth != null && isAdmin(request.auth.uid);
+    }
+    
+    // Hairstyles collection - public read access for approved hairstyles
+    match /hairstyles/{hairstyleId} {
+      // Anyone authenticated can read approved hairstyles
+      allow read: if request.auth != null && 
+                     resource.data.isApproved == true && 
+                     resource.data.isRejected == false;
+      
+      // Only admins can create, update, or delete hairstyles
+      allow create, update, delete: if request.auth != null && isAdmin(request.auth.uid);
+      
+      // Users can read their own uploaded hairstyles (even if not approved)
+      allow read: if request.auth != null && 
+                     request.auth.uid == resource.data.uploadedBy;
+    }
+    
+    // System notifications collection
+    match /notifications/{notificationId} {
+      // Users can read their own notifications
+      allow read: if request.auth != null && 
+                     request.auth.uid == resource.data.userId;
+      
+      // Admins can create notifications
+      allow create: if request.auth != null && isAdmin(request.auth.uid);
+    }
+    
+    // User favorites collection
+    match /users/{userId}/favorites/{favoriteId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // Analytics collection - admin only
+    match /analytics/{document=**} {
+      allow read, write: if request.auth != null && isAdmin(request.auth.uid);
+    }
+    
+    // System settings - admin only
+    match /settings/{document=**} {
+      allow read, write: if request.auth != null && isAdmin(request.auth.uid);
+    }
+    
+    // Helper function to check if user is admin
+    function isAdmin(userId) {
+      return exists(/databases/$(database)/documents/users/$(userId)) &&
+             get(/databases/$(database)/documents/users/$(userId)).data.role == 'admin';
+    }
+    
+    // Fallback rule - deny all other access
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

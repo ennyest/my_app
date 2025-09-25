@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
+import 'dart:io';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/constants/app_constants.dart';
+import '../../../core/services/image_upload_service.dart';
+import '../../../core/services/permission_service.dart';
 import '../../../shared/widgets/custom_button.dart';
 
 class CameraScreen extends StatefulWidget {
@@ -13,6 +17,8 @@ class CameraScreen extends StatefulWidget {
 class _CameraScreenState extends State<CameraScreen> {
   bool _isCameraInitialized = false;
   bool _isCapturing = false;
+  XFile? _capturedImage;
+  final ImageUploadService _imageService = ImageUploadService();
 
   @override
   void initState() {
@@ -21,8 +27,20 @@ class _CameraScreenState extends State<CameraScreen> {
   }
 
   Future<void> _initializeCamera() async {
-    // TODO: Initialize camera
-    await Future.delayed(const Duration(seconds: 1));
+    // Check camera permissions
+    final hasPermission = await PermissionService.requestCameraPermission();
+    if (!hasPermission) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Camera permission is required'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
+      return;
+    }
+
     setState(() {
       _isCameraInitialized = true;
     });
@@ -33,20 +51,71 @@ class _CameraScreenState extends State<CameraScreen> {
       _isCapturing = true;
     });
 
-    // TODO: Capture photo
-    await Future.delayed(const Duration(seconds: 2));
-
-    setState(() {
-      _isCapturing = false;
-    });
-
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Photo captured! Processing...'),
-        ),
-      );
+    try {
+      final XFile? image = await _imageService.pickImageFromCamera();
+      if (image != null) {
+        setState(() {
+          _capturedImage = image;
+        });
+        
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Photo captured successfully!'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error capturing photo: $e'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
+    } finally {
+      setState(() {
+        _isCapturing = false;
+      });
     }
+  }
+
+  Future<void> _openGallery() async {
+    try {
+      final XFile? image = await _imageService.pickImageFromGallery();
+      if (image != null) {
+        setState(() {
+          _capturedImage = image;
+        });
+        
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Image selected from gallery!'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error selecting image: $e'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
+    }
+  }
+
+  void _clearImage() {
+    setState(() {
+      _capturedImage = null;
+    });
   }
 
   @override
@@ -73,8 +142,17 @@ class _CameraScreenState extends State<CameraScreen> {
       backgroundColor: Colors.black,
       body: Stack(
         children: [
-          // Camera Preview Placeholder
-          if (_isCameraInitialized)
+          // Camera Preview or Captured Image
+          if (_capturedImage != null)
+            Container(
+              width: double.infinity,
+              height: double.infinity,
+              child: Image.file(
+                File(_capturedImage!.path),
+                fit: BoxFit.cover,
+              ),
+            )
+          else if (_isCameraInitialized)
             Container(
               width: double.infinity,
               height: double.infinity,
@@ -123,8 +201,8 @@ class _CameraScreenState extends State<CameraScreen> {
               ),
             ),
 
-          // Face Detection Overlay
-          if (_isCameraInitialized)
+          // Face Detection Overlay (only show if no captured image)
+          if (_isCameraInitialized && _capturedImage == null)
             Positioned(
               top: 100,
               left: 50,
@@ -146,6 +224,26 @@ class _CameraScreenState extends State<CameraScreen> {
                       fontWeight: FontWeight.bold,
                     ),
                   ),
+                ),
+              ),
+            ),
+          
+          // Clear image button (only show if image is captured)
+          if (_capturedImage != null)
+            Positioned(
+              top: 40,
+              right: 20,
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.black.withOpacity(0.7),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: IconButton(
+                  icon: const Icon(
+                    Icons.close,
+                    color: Colors.white,
+                  ),
+                  onPressed: _clearImage,
                 ),
               ),
             ),
@@ -181,12 +279,7 @@ class _CameraScreenState extends State<CameraScreen> {
                           size: 30,
                         ),
                         onPressed: () {
-                          // TODO: Open gallery
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Gallery coming soon!'),
-                            ),
-                          );
+                          _openGallery();
                         },
                       ),
                       
@@ -240,19 +333,27 @@ class _CameraScreenState extends State<CameraScreen> {
                   const SizedBox(height: AppConstants.defaultPadding),
                   
                   // AI Analysis Button
-                  CustomButton(
-                    text: 'Analyze with AI',
-                    onPressed: _isCameraInitialized ? () {
-                      // TODO: Start AI analysis
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('AI analysis coming soon!'),
-                        ),
-                      );
-                    } : null,
-                    backgroundColor: AppColors.primary,
-                    width: double.infinity,
-                  ),
+                  if (_capturedImage != null)
+                    CustomButton(
+                      text: 'Analyze with AI',
+                      onPressed: () {
+                        // TODO: Implement AI analysis
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('AI analysis feature coming soon!'),
+                          ),
+                        );
+                      },
+                      backgroundColor: AppColors.primary,
+                      width: double.infinity,
+                    )
+                  else
+                    CustomButton(
+                      text: 'Take Photo to Analyze',
+                      onPressed: null,
+                      backgroundColor: AppColors.primary,
+                      width: double.infinity,
+                    ),
                 ],
               ),
             ),
