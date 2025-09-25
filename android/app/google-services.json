@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "643541215150",
+    "project_id": "styla-01",
+    "storage_bucket": "styla-01.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:643541215150:android:fd7e2484b4ce766dc88a3f",
+        "android_client_info": {
+          "package_name": "com.example.my_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDVeE6kz5Ow-GwlyWngzLCSRdH16LR9uW4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
