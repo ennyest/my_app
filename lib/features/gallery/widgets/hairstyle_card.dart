@@ -13,6 +13,7 @@ class HairstyleCard extends StatelessWidget {
   final VoidCallback? onTap;
   final VoidCallback? onLike;
   final VoidCallback? onSave;
+  final VoidCallback? onTryOn;
   final bool isLiked;
   final bool isSaved;
 
@@ -27,6 +28,7 @@ class HairstyleCard extends StatelessWidget {
     this.onTap,
     this.onLike,
     this.onSave,
+    this.onTryOn,
     this.isLiked = false,
     this.isSaved = false,
   });
@@ -189,7 +191,43 @@ class HairstyleCard extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                     ),
                     
-                    const Spacer(),
+                    const SizedBox(height: 8),
+                    
+                    // Try On Button
+                    SizedBox(
+                      width: double.infinity,
+                      height: 32,
+                      child: ElevatedButton(
+                        onPressed: onTryOn,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primary,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(horizontal: 8),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.face_retouching_natural,
+                              size: 16,
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              'Try On',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    
+                    const SizedBox(height: 4),
                     
                     // Likes
                     Row(

@@ -67,6 +67,11 @@ dependencies:
   path_provider: ^2.1.1
   shared_preferences: ^2.2.2
   permission_handler: ^11.1.0
+  
+  # AI Integration
+  google_generative_ai: ^0.4.3
+  mime: ^1.0.4
+  uuid: ^4.2.1
 
 dev_dependencies:
   flutter_test:

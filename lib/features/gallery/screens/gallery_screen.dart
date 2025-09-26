@@ -7,6 +7,8 @@ import '../../../shared/widgets/custom_button.dart';
 import '../../../shared/widgets/custom_text_field.dart';
 import '../widgets/hairstyle_card.dart';
 import '../widgets/gallery_filter_bottom_sheet.dart';
+import '../../tryon/screens/hairstyle_tryon_screen.dart';
+import 'custom_hairstyle_upload_screen.dart';
 
 class GalleryScreen extends StatefulWidget {
   const GalleryScreen({super.key});
@@ -151,15 +153,16 @@ class _GalleryScreenState extends State<GalleryScreen> {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Please use Admin Dashboard to add hairstyles'),
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const CustomHairstyleUploadScreen(),
             ),
           );
         },
         backgroundColor: AppColors.primary,
-        tooltip: 'Add Hairstyle',
-        child: const Icon(Icons.add),
+        tooltip: 'Upload Custom Hairstyle',
+        child: const Icon(Icons.add_photo_alternate),
       ),
     );
   }
@@ -269,6 +272,16 @@ class _GalleryScreenState extends State<GalleryScreen> {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text('${hairstyle.name} saved to favorites'),
+              ),
+            );
+          },
+          onTryOn: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => HairstyleTryOnScreen(
+                  selectedHairstyle: hairstyle,
+                ),
               ),
             );
           },

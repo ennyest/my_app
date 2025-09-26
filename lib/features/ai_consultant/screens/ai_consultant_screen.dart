@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
+import 'dart:io';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/constants/app_constants.dart';
+import '../../../core/services/gemini_ai_service.dart';
+import '../../../core/services/image_upload_service.dart';
 import '../../../shared/widgets/custom_button.dart';
 
 class AIConsultantScreen extends StatefulWidget {
@@ -11,22 +15,101 @@ class AIConsultantScreen extends StatefulWidget {
 }
 
 class _AIConsultantScreenState extends State<AIConsultantScreen> {
+  final GeminiAIService _aiService = GeminiAIService();
+  final ImageUploadService _imageService = ImageUploadService();
+  
   bool _isAnalyzing = false;
   String _analysisResult = '';
+  XFile? _selectedImage;
+  String _analysisType = 'general'; // general, color, personalized
 
   Future<void> _startAnalysis() async {
+    if (_selectedImage == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please select a photo first'),
+          backgroundColor: AppColors.error,
+        ),
+      );
+      return;
+    }
+
     setState(() {
       _isAnalyzing = true;
       _analysisResult = '';
     });
 
-    // TODO: Implement AI analysis
-    await Future.delayed(const Duration(seconds: 3));
+    try {
+      String result;
+      
+      switch (_analysisType) {
+        case 'color':
+          result = await _aiService.analyzeHairColorOptions(_selectedImage!);
+          break;
+        case 'personalized':
+          result = await _aiService.getPersonalizedRecommendations(
+            userPhoto: _selectedImage!,
+            preferences: 'Modern, low-maintenance styles',
+            lifestyle: 'Professional, active',
+            hairGoals: 'Easy styling with versatile looks',
+          );
+          break;
+        default:
+          result = await _aiService.analyzeHairAndFace(_selectedImage!);
+      }
 
-    setState(() {
-      _isAnalyzing = false;
-      _analysisResult = 'Analysis complete! Here are your personalized recommendations...';
-    });
+      setState(() {
+        _isAnalyzing = false;
+        _analysisResult = result;
+      });
+    } catch (e) {
+      setState(() {
+        _isAnalyzing = false;
+        _analysisResult = 'Analysis failed. Please try again with a clear photo showing your face and hair.';
+      });
+    }
+  }
+
+  Future<void> _selectImage({bool useCamera = false}) async {
+    try {
+      XFile? image;
+      
+      if (useCamera) {
+        image = await _imageService.pickImageFromCamera();
+      } else {
+        image = await _imageService.pickImageFromGallery();
+      }
+
+      if (image != null) {
+        // Validate image for analysis
+        final isValid = await _aiService.validateImageForAnalysis(image);
+        
+        if (isValid) {
+          setState(() {
+            _selectedImage = image;
+            _analysisResult = ''; // Clear previous results
+          });
+        } else {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Please select a clear photo showing your face and hair'),
+                backgroundColor: AppColors.error,
+              ),
+            );
+          }
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error selecting image: $e'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
+    }
   }
 
   @override
@@ -117,51 +200,62 @@ class _AIConsultantScreenState extends State<AIConsultantScreen> {
             const SizedBox(height: AppConstants.largePadding),
             
             // Action Buttons
-            Row(
-              children: [
-                Expanded(
-                  child: CustomButton(
-                    text: 'Take Photo',
-                    icon: Icons.camera_alt,
-                    onPressed: _isAnalyzing ? null : () {
-                      // TODO: Open camera
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Camera integration coming soon!'),
-                        ),
-                      );
-                    },
+            if (_selectedImage != null) ...[
+              Row(
+                children: [
+                  Expanded(
+                    child: CustomButton(
+                      text: 'Change Photo',
+                      icon: Icons.edit,
+                      isOutlined: true,
+                      onPressed: _isAnalyzing ? null : () => _selectImage(),
+                    ),
                   ),
-                ),
-                const SizedBox(width: AppConstants.defaultPadding),
-                Expanded(
-                  child: CustomButton(
-                    text: 'Upload Photo',
-                    icon: Icons.photo_library,
-                    isOutlined: true,
-                    onPressed: _isAnalyzing ? null : () {
-                      // TODO: Open gallery
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Gallery integration coming soon!'),
-                        ),
-                      );
-                    },
+                  const SizedBox(width: AppConstants.defaultPadding),
+                  Expanded(
+                    child: CustomButton(
+                      text: 'Analyze',
+                      icon: Icons.psychology,
+                      onPressed: _isAnalyzing ? null : _startAnalysis,
+                      isLoading: _isAnalyzing,
+                    ),
                   ),
-                ),
-              ],
-            ),
+                ],
+              ),
+            ] else ...[
+              Row(
+                children: [
+                  Expanded(
+                    child: CustomButton(
+                      text: 'Take Photo',
+                      icon: Icons.camera_alt,
+                      onPressed: _isAnalyzing ? null : () => _selectImage(useCamera: true),
+                    ),
+                  ),
+                  const SizedBox(width: AppConstants.defaultPadding),
+                  Expanded(
+                    child: CustomButton(
+                      text: 'Upload Photo',
+                      icon: Icons.photo_library,
+                      isOutlined: true,
+                      onPressed: _isAnalyzing ? null : () => _selectImage(),
+                    ),
+                  ),
+                ],
+              ),
+            ],
             
-            const SizedBox(height: AppConstants.largePadding * 2),
+            const SizedBox(height: AppConstants.largePadding),
             
-            // Quick Analysis Button
-            CustomButton(
-              text: _isAnalyzing ? 'Analyzing...' : 'Quick Analysis',
-              onPressed: _isAnalyzing ? null : _startAnalysis,
-              backgroundColor: AppColors.accent,
-              width: double.infinity,
-              isLoading: _isAnalyzing,
-            ),
+            // Quick Analysis Button (only show if image is selected)
+            if (_selectedImage != null)
+              CustomButton(
+                text: _isAnalyzing ? 'Analyzing...' : 'Start $_analysisType Analysis',
+                onPressed: _isAnalyzing ? null : _startAnalysis,
+                backgroundColor: AppColors.accent,
+                width: double.infinity,
+                isLoading: _isAnalyzing,
+              ),
             
             if (_analysisResult.isNotEmpty) ...[
               const SizedBox(height: AppConstants.largePadding * 2),
