@@ -144,7 +144,7 @@ class _CameraScreenState extends State<CameraScreen> {
         children: [
           // Camera Preview or Captured Image
           if (_capturedImage != null)
-            Container(
+            SizedBox(
               width: double.infinity,
               height: double.infinity,
               child: Image.file(

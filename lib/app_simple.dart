@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'core/theme/app_theme.dart';
 import 'core/services/theme_service.dart';
-import 'features/auth/screens/splash_screen.dart';
 import 'features/home/screens/main_navigation.dart';
 
 class HairStyleApp extends StatelessWidget {

@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../../../core/services/admin_service.dart';
 import '../../../core/services/auth_service.dart';
 import '../../../core/services/image_upload_service.dart';
 import '../../../core/theme/app_colors.dart';
@@ -145,7 +144,7 @@ class _AddHairstyleScreenState extends State<AddHairstyleScreen> {
               
               // Category Dropdown
               DropdownButtonFormField<String>(
-                value: _selectedCategory,
+                initialValue: _selectedCategory,
                 decoration: const InputDecoration(
                   labelText: 'Category',
                   border: OutlineInputBorder(),
@@ -170,7 +169,7 @@ class _AddHairstyleScreenState extends State<AddHairstyleScreen> {
                   // Difficulty Dropdown
                   Expanded(
                     child: DropdownButtonFormField<String>(
-                      value: _selectedDifficulty,
+                      initialValue: _selectedDifficulty,
                       decoration: const InputDecoration(
                         labelText: 'Difficulty',
                         border: OutlineInputBorder(),
@@ -194,7 +193,7 @@ class _AddHairstyleScreenState extends State<AddHairstyleScreen> {
                   // Length Dropdown
                   Expanded(
                     child: DropdownButtonFormField<String>(
-                      value: _selectedLength,
+                      initialValue: _selectedLength,
                       decoration: const InputDecoration(
                         labelText: 'Hair Length',
                         border: OutlineInputBorder(),

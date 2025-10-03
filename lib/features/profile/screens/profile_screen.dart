@@ -8,7 +8,6 @@ import '../../../core/constants/app_constants.dart';
 import '../../../shared/widgets/custom_button.dart';
 import '../widgets/profile_option_tile.dart';
 import '../../admin/screens/admin_dashboard_screen.dart';
-import '../../../shared/models/user_model.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});

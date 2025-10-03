@@ -10,7 +10,7 @@ plugins {
 
 android {
     namespace = "com.example.my_app"
-    compileSdk = 34
+    compileSdk = 37
     ndkVersion = "25.1.8937393"
 
     compileOptions {
@@ -28,7 +28,7 @@ android {
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion
-        targetSdk = 34
+        targetSdk = 37
         versionCode = 1
         versionName = "1.0"
     }

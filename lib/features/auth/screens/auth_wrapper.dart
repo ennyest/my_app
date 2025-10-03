@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/services/auth_service.dart';
 import 'login_screen.dart';
-import 'register_screen.dart';
 import '../../home/screens/main_navigation.dart';
 
 class AuthWrapper extends StatelessWidget {

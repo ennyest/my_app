@@ -35,7 +35,7 @@ class _AdminDebugScreenState extends State<AdminDebugScreen> {
         'isAuthenticated': authService.isAuthenticated,
         'userEmail': authService.user?.email ?? 'No Email',
         'userUid': authService.user?.uid ?? 'No UID',
-        'userRole': user?.role?.displayName ?? 'No Role',
+        'userRole': user?.role.displayName ?? 'No Role',
         'isAdmin': user?.isAdmin ?? false,
         'isAdminEmail': AdminService.isAdminEmail(authService.user?.email ?? ''),
         'userModelExists': user != null,
@@ -281,7 +281,7 @@ class _AdminDebugScreenState extends State<AdminDebugScreen> {
                 ),
               ],
             ),
-          )).toList(),
+          )),
         ],
       ),
     );

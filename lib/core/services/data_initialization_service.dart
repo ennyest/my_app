@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../constants/app_constants.dart';
-import '../../shared/models/hairstyle_model.dart';
 
 class DataInitializationService {
   static final FirebaseFirestore _firestore = FirebaseFirestore.instance;

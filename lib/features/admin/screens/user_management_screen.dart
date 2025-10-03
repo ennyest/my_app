@@ -81,7 +81,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                       children: [
                         Expanded(
                           child: DropdownButtonFormField<UserRole?>(
-                            value: _filterRole,
+                            initialValue: _filterRole,
                             decoration: const InputDecoration(
                               labelText: 'Role',
                               border: OutlineInputBorder(),
@@ -108,7 +108,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                         const SizedBox(width: AppConstants.defaultPadding),
                         Expanded(
                           child: DropdownButtonFormField<bool?>(
-                            value: _filterActiveStatus,
+                            initialValue: _filterActiveStatus,
                             decoration: const InputDecoration(
                               labelText: 'Status',
                               border: OutlineInputBorder(),

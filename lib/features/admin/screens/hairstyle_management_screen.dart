@@ -1,3 +1,4 @@
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -5,7 +6,6 @@ import '../../../core/services/admin_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../shared/models/hairstyle_model.dart';
-import '../../../shared/widgets/custom_button.dart';
 import 'add_hairstyle_screen.dart';
 
 class HairstyleManagementScreen extends StatefulWidget {
@@ -121,7 +121,7 @@ class _HairstyleManagementScreenState extends State<HairstyleManagementScreen> {
                 ),
                 const SizedBox(height: AppConstants.defaultPadding),
                 DropdownButtonFormField<String?>(
-                  value: _selectedCategory,
+                  initialValue: _selectedCategory,
                   decoration: const InputDecoration(
                     labelText: 'Filter by Category',
                     border: OutlineInputBorder(),

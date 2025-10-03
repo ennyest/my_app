@@ -205,10 +205,10 @@ class AdminService extends ChangeNotifier {
       
       final totalUsers = usersSnapshot.docs.length;
       final activeUsers = usersSnapshot.docs
-          .where((doc) => (doc.data() as Map<String, dynamic>)['isActive'] == true)
+          .where((doc) => (doc.data())['isActive'] == true)
           .length;
       final adminUsers = usersSnapshot.docs
-          .where((doc) => (doc.data() as Map<String, dynamic>)['role'] == 'admin')
+          .where((doc) => (doc.data())['role'] == 'admin')
           .length;
 
       // Get hairstyle statistics
@@ -218,10 +218,10 @@ class AdminService extends ChangeNotifier {
       
       final totalStyles = stylesSnapshot.docs.length;
       final approvedStyles = stylesSnapshot.docs
-          .where((doc) => (doc.data() as Map<String, dynamic>)['isApproved'] == true)
+          .where((doc) => (doc.data())['isApproved'] == true)
           .length;
       final pendingStyles = stylesSnapshot.docs
-          .where((doc) => (doc.data() as Map<String, dynamic>)['isApproved'] == false)
+          .where((doc) => (doc.data())['isApproved'] == false)
           .length;
 
       // Get gallery statistics

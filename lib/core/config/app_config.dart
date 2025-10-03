@@ -1,6 +1,6 @@
 class AppConfig {
   // Gemini AI Configuration
-  static const String geminiApiKey = 'YOUR_GEMINI_API_KEY_HERE';
+  static const String geminiApiKey = 'AIzaSyDp_0ipDNip9m0u0C-cU3ww4e0hDbHaKVs';
   
   // TODO: In production, use environment variables or secure storage
   // Example: const String geminiApiKey = String.fromEnvironment('GEMINI_API_KEY');

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'dart:io';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/services/gemini_ai_service.dart';
@@ -21,7 +20,7 @@ class _AIConsultantScreenState extends State<AIConsultantScreen> {
   bool _isAnalyzing = false;
   String _analysisResult = '';
   XFile? _selectedImage;
-  String _analysisType = 'general'; // general, color, personalized
+  final String _analysisType = 'general'; // general, color, personalized
 
   Future<void> _startAnalysis() async {
     if (_selectedImage == null) {
